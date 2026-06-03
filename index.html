@@ -6,7 +6,13 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lab 9</title>
-
+  <script src="https://cdn.trackjs.com/agent/v3/latest/t.js"></script>
+<script>
+  window.TrackJS && TrackJS.install({ 
+    token: "31e21177c8c84fbe998f8cc22eba5dd4"
+    // for more configuration options, see https://docs.trackjs.com
+  });
+</script>
   <style>
     button {
       margin: 3px;
@@ -91,17 +97,205 @@
     let form = document.querySelector('form');
     form.addEventListener('submit', e => {
       e.preventDefault();
-      let output = document.querySelector('output');
-      let firstNum = document.querySelector('#first-num').value;
-      let secondNum = document.querySelector('#second-num').value;
-      let operator = document.querySelector('#operator').value;
-      output.innerHTML = eval(`${firstNum} ${operator} ${secondNum}`);
+      let output;
+      let calculateBtn = document.querySelector('#calculate');
+
+      try {
+        if (calculateBtn) {
+          calculateBtn.disabled = true;
+        }
+
+        output = getRequiredElement('output', 'calculator output');
+        let firstNum = getNumberInput('#first-num', 'first number');
+        let secondNum = getNumberInput('#second-num', 'second number');
+        let operator = getRequiredElement('#operator', 'operator').value;
+
+        output.textContent = calculate(firstNum, secondNum, operator);
+      } catch (error) {
+        console.error('Calculator error:', error);
+
+        if (output) {
+          if (error instanceof CalculatorError) {
+            output.textContent = error.message;
+          } else {
+            output.textContent = 'Unexpected calculator error.';
+          }
+        }
+      } finally {
+        if (calculateBtn) {
+          calculateBtn.disabled = false;
+        }
+
+        console.log('Calculator submit attempt finished.');
+      }
     });
+
+    class CalculatorError extends Error {
+      constructor(message) {
+        super(message);
+        this.name = 'CalculatorError';
+      }
+    }
+
+    class MissingCalculatorElementError extends CalculatorError {
+      constructor(selector, description) {
+        super(`Missing ${description} element: ${selector}`);
+        this.name = 'MissingCalculatorElementError';
+        this.selector = selector;
+        this.description = description;
+      }
+    }
+
+    class CalculatorInputError extends CalculatorError {
+      constructor(message, field) {
+        super(message);
+        this.name = 'CalculatorInputError';
+        this.field = field;
+      }
+    }
+
+    class CalculatorDivideByZeroError extends CalculatorError {
+      constructor() {
+        super('Cannot divide by zero.');
+        this.name = 'CalculatorDivideByZeroError';
+      }
+    }
+
+    function getRequiredElement(selector, description) {
+      let element = document.querySelector(selector);
+
+      if (!element) {
+        throw new MissingCalculatorElementError(selector, description);
+      }
+
+      return element;
+    }
+
+    function getNumberInput(selector, description) {
+      let input = getRequiredElement(selector, description);
+      let value = input.value.trim();
+      let number = Number(value);
+
+      if (value === '') {
+        throw new CalculatorInputError(`Please enter a ${description}.`, description);
+      }
+
+      if (!Number.isFinite(number)) {
+        throw new CalculatorInputError(`The ${description} must be a valid number.`, description);
+      }
+
+      return number;
+    }
+
+    function calculate(firstNum, secondNum, operator) {
+      switch (operator) {
+        case '+':
+          return firstNum + secondNum;
+        case '-':
+          return firstNum - secondNum;
+        case '*':
+          return firstNum * secondNum;
+        case '/':
+          if (secondNum === 0) {
+            throw new CalculatorDivideByZeroError();
+          }
+
+          return firstNum / secondNum;
+        default:
+          throw new CalculatorInputError(`Unsupported operator: ${operator}`, 'operator');
+      }
+    }
 
     let errorBtns = Array.from(document.querySelectorAll('#error-btns > button'));
 
     // Start your code here
     // You may move this JS to another file if you wish
+    let consoleDemoData = {
+      course: 'CSE 110',
+      lab: 9,
+      topic: 'Console testing',
+      tools: ['Chrome DevTools', 'console methods']
+    };
+
+    let consoleTableData = [
+      { method: 'console.log()', purpose: 'General messages' },
+      { method: 'console.error()', purpose: 'Error messages' },
+      { method: 'console.table()', purpose: 'Formatted tabular data' }
+    ];
+
+    let demoTimerName = 'Console Timer Demo';
+    let previousErrorHandler = window.onerror;
+
+    window.onerror = function (message, source, lineNumber, columnNumber, error) {
+      console.log('Global error caught by window.onerror:', {
+        message,
+        source,
+        lineNumber,
+        columnNumber,
+        errorName: error ? error.name : 'UnknownError'
+      });
+
+      if (typeof previousErrorHandler === 'function') {
+        previousErrorHandler(message, source, lineNumber, columnNumber, error);
+      }
+
+      return false;
+    };
+
+    errorBtns.forEach(button => {
+      button.addEventListener('click', () => {
+        switch (button.textContent) {
+          case 'Console Log':
+            console.log('Console Log Demo:', consoleDemoData);
+            break;
+          case 'Console Error':
+            console.error('Console Error Demo: something went wrong in this sample.');
+            break;
+          case 'Console Count':
+            console.count('Console Count Demo');
+            break;
+          case 'Console Warn':
+            console.warn('Console Warn Demo: this is a warning message.');
+            break;
+          case 'Console Assert':
+            console.assert(false, 'Console Assert Demo: this assertion is intentionally false.');
+            break;
+          case 'Console Clear':
+            console.clear();
+            break;
+          case 'Console Dir':
+            console.dir(consoleDemoData);
+            break;
+          case 'Console dirxml':
+            console.dirxml(document.querySelector('main'));
+            break;
+          case 'Console Group Start':
+            console.group('Console Group Demo');
+            console.log('This message is inside the group.');
+            console.info('Click "Console Group End" to close this group.');
+            break;
+          case 'Console Group End':
+            console.log('Closing the current console group.');
+            console.groupEnd();
+            break;
+          case 'Console Table':
+            console.table(consoleTableData);
+            break;
+          case 'Start Timer':
+            console.time(demoTimerName);
+            console.log('Timer started.');
+            break;
+          case 'End Timer':
+            console.timeEnd(demoTimerName);
+            break;
+          case 'Console Trace':
+            console.trace('Console Trace Demo');
+            break;
+          case 'Trigger a Global Error':
+            throw new Error('Global Error Demo: the button intentionally threw outside try/catch.');
+        }
+      });
+    });
   </script>
 </body>
 
